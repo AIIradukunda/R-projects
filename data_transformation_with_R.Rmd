@@ -1,0 +1,302 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  pdf_document: default
+  html_notebook: default
+---
+
+Created a Postgresql db and loaded the table with superstore store data and the script reads the table in R 
+
+```{r}
+library(DBI)
+db <- 'practicedb'  
+host_db <-'localhost'  
+db_port <- '5432' 
+db_user <- 'postgres'  
+db_password <- 'root123'
+con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+
+#check if the connection is established
+dbListTables(con) 
+ 
+#method returns an overview of the data stored in the database 
+df <- dbGetQuery(con, 'SELECT * FROM superstore') 
+head(df)
+```
+
+Checking the column names of the data, number of rows and columns
+
+```{r}
+names(df)
+nrow(df)
+ncol(df)
+```
+
+Removing NA's
+
+```{r}
+na.omit(df)
+
+```
+```{r}
+tail(df$order_date)
+
+```
+Inner join in R using merge() function
+
+```{r}
+df1 <-data.frame(df$order_id,df$order_date,df$ship_date)
+cols1<- c("order_id","order_date","ship_date")
+colnames (df1)<-cols1
+
+df2 <- data.frame (df$order_id,df$region,df$states,df$city)
+cols2 <- c("order_id","region","states","city")
+colnames(df2) <-cols2
+
+inner <- merge(x=df1,y=df2, by="order_id")
+inner
+
+```
+Left join in R using merge() function
+
+```{r}
+df3 <- data.frame(df$order_id,df$ship_mode,df$segment,df$category)
+cols3 <-c("order_id","ship_mode","segment","category")
+colnames(df3) <-cols3
+  
+df4 <- data.frame(df$order_id,df$sales,df$quantity,df$discount,df$profit)
+cols4 <-c("order_id","sales","quantity","discount","profit")
+colnames(df4) <-cols4
+
+left <-merge(x=df3,y=df4,by="order_id",all.x=TRUE)
+left
+```
+```{r}
+df3 <- data.frame(df$order_id,df$ship_mode,df$segment,df$category)
+cols3 <-c("order_id","ship_mode","segment","category")
+colnames(df3) <-cols3
+  
+df4 <- data.frame(df$order_id,df$sales,df$quantity,df$discount,df$profit)
+cols4 <-c("order_id","sales","quantity","discount","profit")
+colnames(df4) <-cols4
+
+right <-merge(x=df3,y=df4,by="order_id",all.y=TRUE)
+right
+```
+Outer join in R using merge() function
+
+```{r}
+df3 <- data.frame(df$order_id,df$ship_mode,df$segment,df$category)
+cols3 <-c("order_id","ship_mode","segment","category")
+colnames(df3) <-cols3
+  
+df4 <- data.frame(df$order_id,df$sales,df$quantity,df$discount,df$profit)
+cols4 <-c("order_id","sales","quantity","discount","profit")
+colnames(df4) <-cols4
+
+outer <-merge(x=df3,y=df4,by="order_id",all=TRUE)
+outer
+```
+
+Pie chart 
+
+concatenates labels and pct values and stores it in variable lbls
+
+```{r}
+
+# to only return sales that are positive
+#df <- df[df$sales >= 0, ]
+sales_by_category<- aggregate(df$sales, by=list(category=df$category), FUN=sum)
+
+
+#sales_by_category<- data.frame(df$category,df$sales)
+col<- c("category","sales")
+colnames(sales_by_category) <- col
+pct <- round(sales_by_category$sales/sum(sales_by_category$sales)*100)
+
+labels <- df$category
+lbls <-paste(labels,pct)
+lbls <- paste(lbls,"%",sep="")
+pie(table(sales_by_category$sales),labels=lbls,col=rainbow(3),main="sales_by_category_pie_chart")
+legend("topright", sales_by_category$category, cex=0.8,fill=rainbow(length(sales_by_category$sales)))
+
+```
+The package plotrix has a function called pie3D() that is used for plotting a 3D Pie chart
+
+explode is a parameter used to increase or decrease the gap of split in slices
+
+```{r}
+#install.packages("plotrix")
+library(plotrix)
+pie3D(sales_by_category$sales,labels=lbls,explode=0.05,main="sales_by_category")
+```
+bar chart
+
+```{r}
+
+#df_bar <-head(df_bar,n=10)
+#df_bar %>% top_n(10)
+df_bar <-aggregate(df$sales, by=list(segment=df$category), FUN=sum)
+col_bar <- c("category","sales")
+colnames(df_bar) <-col_bar
+df_bar
+
+barplot(df_bar$sales,xlab="category",ylab="sales",col="blue",names.arg=df_bar$category, main="sales by category")
+#legend("topright",df_bar$category,fill=c("green","yellow","orange"))
+
+```
+
+if statement
+
+```{r}
+if (as.Date("2017-11-17")%in% df$order_date) {
+  print("the date is found")
+}else{
+  print("the date is not found")
+}
+```
+
+if ....else.. if ...else 
+```{r}
+if (as.Date("2020-11-01")%in% df$order_date) {
+  print("the date is found")
+}else if (as.Date("2017-11-17")%in% df$order_date) {
+  print ("another date is found !")
+}else{
+  print("the date is not found!")
+}
+```
+
+switch case 
+
+```{r}
+switch_ex <- switch(
+as.numeric(format(as.Date("2017-02-1"), "%m")),
+ "January",
+ "February",
+ "March"
+)
+print(switch_ex)
+ 
+```
+Repeat loop
+
+When the break statement is encountered inside a loop, the loop is immediately
+terminated and program control resumes at the next statement following the loop
+
+```{r}
+
+early_date <- as.Date(df$order_date)
+print( min(early_date))
+x <-as.numeric(format(as.Date(df$order_date),"%y"))
+cnt <- min(x)
+repeat{
+  print(cnt)
+cnt <- cnt+1
+  if(cnt > max(x)){
+    break
+  }
+}
+```
+
+while loop 
+
+```{r}
+early_date <- as.Date(df$order_date)
+print( min(early_date))
+x <-as.numeric(format(as.Date(df$order_date),"%y"))
+cnt <- min(x)
+while (cnt <max(x)) {
+  print(cnt)
+  cnt=cnt+1
+ 
+ 
+}
+```
+
+for loop
+
+```{r}
+col<- unique(df$segment)
+print(col)
+for ( i in col){
+ print(i)
+}
+
+```
+
+The next statement in R programming language is useful when we want to skip
+the current iteration of a loop without terminating it.
+
+```{r}
+col<- unique(df$category)
+print(col)
+for ( i in col){
+  if(i=="Office Supplies"){
+  next
+  }
+ print(i)
+}
+
+```
+
+The dplyr is a powerful R-package to manipulate, clean and summarize unstructured data in a a fast way
+
+
+```{r}
+library(dplyr)
+
+# the distinct function is used to eliminate duplicates based off the order id
+df_x <- df%>%distinct(order_id,.keep_all= TRUE)
+df_x
+
+
+```
+
+```{r}
+
+df_select <- distinct(df%>%select(order_id, customer_id,order_date,ship_date,ship_mode,sales,))
+#df_select
+
+df_filter <- df_select%>%filter(ship_mode=='First Class') 
+#df_filter
+
+df_arrange <- df_filter%>%arrange(desc(ship_date),order_date, )
+#head(df_arrange)
+
+df_mutate <- df_arrange%>%mutate(days=as.Date(ship_date)-as.Date(order_date))
+#head(df_mutate)
+
+df_group_by <- group_by(df_mutate,days)
+df_group_by
+
+
+```
+inner join , right join, full join 
+
+%>% :This operator will forward a value, or the result of an expression, into the next function call/expression
+
+```{r}
+
+df3 <- data.frame(df$order_id,df$ship_mode,df$segment,df$category)
+cols3 <-c("order_id","ship_mode","segment","category")
+colnames(df3) <-cols3
+  
+df4 <- data.frame(df$order_id,df$sales,df$quantity,df$discount,df$profit)
+cols4 <-c("order_id","sales","quantity","discount","profit")
+colnames(df4) <-cols4
+
+inner <- df3 %>% inner_join(df4,by="order_id")
+# inner
+
+right <- df3 %>% right_join(df4,by="order_id")
+#right
+
+left <-df3 %>% left_join(df4,by="order_id")
+#left
+
+outer <- df3 %>% full_join(df4,by="order_id")
+outer
+ 
+```
