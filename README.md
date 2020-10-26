@@ -5,6 +5,7 @@
 - DBI
 - plotrix
 - dplyr
+- ggplot2
 
 
 # Data analysis and visualization with R
